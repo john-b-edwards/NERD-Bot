@@ -6,7 +6,7 @@ from team_nerd_score import *
 import datetime
 import subprocess
 import codecs
-import time
+from time import *
 import pause
 
 
@@ -99,7 +99,7 @@ while True:
 	pitcher_df['NERD'] = pitcher_df['NERD'].round(0)
 	pitcher_df['NERD'] = pd.to_numeric(pitcher_df['NERD'],downcast = 'signed')
 	pitcher_df = pitcher_df.head(19)
-	pitcher_df.to_html("pitcher_leaders.html") #this chunk also writes the table into an IMAGE
+	pitcher_df.to_html("pitcher_leaders.html",index=False) #this chunk also writes the table into an IMAGE
 	f=codecs.open("pitcher_leaders.html", 'r')
 	new_html = f.read()
 	f.close()
@@ -134,7 +134,7 @@ while True:
 	team_df = team_df[['Team','NERD']]
 	team_df['NERD'] = team_df['NERD'].round(0)
 	team_df['NERD'] =  pd.to_numeric(team_df['NERD'],downcast = 'signed')
-	team_df.to_html("team_leaders.html")
+	team_df.to_html("team_leaders.html",index=False)
 	f=codecs.open("team_leaders.html", 'r')
 	new_html = f.read()
 	f.close()
@@ -170,7 +170,8 @@ while True:
 	days_games = days_games.sort_values(by=['Game Time'])
 	days_games = days_games.reset_index(drop=True)
 	for index,row in days_games.iterrows(): #This posts NERD scores when games are about to begin
-		pause.until(days_games['Game Time'].iloc[index])
+		print('Waiting for %s vs. %s to start' % str(days_games['Home Team'].iloc[index]),str(days_games['Away Team'].iloc[index]))
+		pause.until(game_times[index])
 		body = '%s (%s) vs. %s (%s) about to start - NERD Game Score of %d' % str(days_games['Home Team'].iloc[index]),str(days_games['Home P'].iloc[index]),str(days_games['Away Team'].iloc[index]),str(days_games['Away P'].iloc[index]),int(day_games[''])
 		api.update_status(body)
 
