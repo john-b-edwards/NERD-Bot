@@ -51,7 +51,7 @@ while True:
 		pass
 
 	#Posts NERD Scores for the day
-
+	try:
 	days_games = pd.DataFrame() #puts scoreoard into a dataframe
 	days_games['Home P'] = [game.p_pitcher_away for game in games]
 	days_games['Home Team']  = [game.home_team for game in games]
@@ -85,8 +85,8 @@ while True:
 	try:
 		api.update_with_media('todays_table.png',body) #posts tweet
 		top_game_already_posted = True
-		sleep(900) #wait 15 minutes for next tweet
 		print('Posted today\'s game table.')
+		sleep(900) #wait 15 minutes for next tweet
 	except:
 		print('Unable to post today\'s game table.')
 		sleep(900)
@@ -134,7 +134,7 @@ while True:
 	team_df = team_df[['Team','NERD']]
 	team_df['NERD'] = team_df['NERD'].round(0)
 	team_df['NERD'] =  pd.to_numeric(team_df['NERD'],downcast = 'signed')
-	team_df.to_html("team_leaders.html",index=False)
+	team_df.to_html("team_leaders.html", index=False)
 	f=codecs.open("team_leaders.html", 'r')
 	new_html = f.read()
 	f.close()
@@ -168,11 +168,13 @@ while True:
 	game_times = [game_time.replace(day=now.day) for game_time in game_times]
 	days_games['Game Time'] = game_times
 	days_games = days_games.sort_values(by=['Game Time'])
+	game_times = sorted(game_times)
 	days_games = days_games.reset_index(drop=True)
+	print(days_games)
 	for index,row in days_games.iterrows(): #This posts NERD scores when games are about to begin
-		print('Waiting for %s vs. %s to start' % str(days_games['Home Team'].iloc[index]),str(days_games['Away Team'].iloc[index]))
+		print('Waiting for %s vs. %s to start' % (str(days_games['Home Team'].iloc[index]) , str(days_games['Away Team'].iloc[index])))
 		pause.until(game_times[index])
-		body = '%s (%s) vs. %s (%s) about to start - NERD Game Score of %d' % str(days_games['Home Team'].iloc[index]),str(days_games['Home P'].iloc[index]),str(days_games['Away Team'].iloc[index]),str(days_games['Away P'].iloc[index]),int(day_games[''])
+		body = '%s (%s) vs. %s (%s) about to start - NERD Game Score of %d' % (str(days_games['Home Team'].iloc[index]),str(days_games['Home P'].iloc[index]),str(days_games['Away Team'].iloc[index]),str(days_games['Away P'].iloc[index]),int(day_games['']))
 		api.update_status(body)
 
 	#pauses running until new day
