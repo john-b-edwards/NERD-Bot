@@ -3,17 +3,19 @@ from bs4 import BeautifulSoup as bs
 import pandas as pd
 import datetime
 
-spotrac_ids = ['Boston Red Sox', 'San Francisco Giants', 'Chicago Cubs',
-	'Washington Nationals', 'Los Angeles Dodgers',
-	'Los Angeles Angels of Anaheim', 'New York Yankees', 'Toronto Blue Jays',
-	'St. Louis Cardinals', 'New York Mets', 'Houston Astros',
-	'Seattle Mariners', 'Texas Rangers', 'Baltimore Orioles',
-	'Colorado Rockies', 'Detroit Tigers', 'Cleveland Indians',
-	'Arizona Diamondbacks', 'Kansas City Royals', 'Minnesota Twins',
-	'Atlanta Braves', 'Philadelphia Phillies', 'Miami Marlins',
-	'San Diego Padres', 'Cincinnati Reds', 'Pittsburgh Pirates',
-	'Milwaukee Brewers', 'Tampa Bay Rays', 'Oakland Athletics',
-	'Chicago White Sox']
+now = datetime.datetime.now()
+
+spotrac_ids = ['Boston Red Sox BOS', 'San Francisco Giants SF', 'Chicago Cubs CHC',
+	'Washington Nationals WSH', 'Los Angeles Dodgers LAD',
+	'Los Angeles Angels LAA', 'New York Yankees NYY', 'Toronto Blue Jays TOR',
+	'St. Louis Cardinals STL', 'New York Mets NYM', 'Houston Astros HOU',
+	'Seattle Mariners SEA', 'Texas Rangers TEX', 'Baltimore Orioles BAL',
+	'Colorado Rockies COL', 'Detroit Tigers DET', 'Cleveland Indians CLE',
+	'Arizona Diamondbacks ARI', 'Kansas City Royals KC', 'Minnesota Twins MIN',
+	'Atlanta Braves ATL', 'Philadelphia Phillies PHI', 'Miami Marlins MIA',
+	'San Diego Padres SD', 'Cincinnati Reds CIN', 'Pittsburgh Pirates PIT',
+	'Milwaukee Brewers MIL', 'Tampa Bay Rays TB', 'Oakland Athletics OAK',
+	'Chicago White Sox CHW']
 
 fangraphs_ids = ['Red Sox','Giants','Cubs','Nationals','Dodgers','Angels',
 	'Yankees','Blue Jays','Cardinals','Mets','Astros','Mariners','Rangers',
@@ -24,7 +26,7 @@ fangraphs_ids = ['Red Sox','Giants','Cubs','Nationals','Dodgers','Angels',
 class TeamLeaderboard:
 
 	def __init__(self,year):
-		if (year < 2011):
+		if (int(year) < 2011):
 			raise ValueError('Incomplete or missing data from this year! Please try another year.')
 		pd.options.mode.chained_assignment = None #this keeps my console from getting spammed with stupid messages
 		team_url = ('https://www.fangraphs.com/leaders.aspx?pos=all&stats=bat&lg=all&qual=0&type=c,53,11,6,111,199,3,58&season=%s&month=0&season1=%s&ind=0&team=0,ts&rost=&age=&filter=&players=0' % (str(year),str(year)))
@@ -34,6 +36,7 @@ class TeamLeaderboard:
 		df = pd.read_html(str(table),header=1)
 		df = df[0]
 		df = df.iloc[:-1]
+		df['PA'] = pd.to_numeric(df['PA'], downcast="float")
 		if (min(list(df['PA'])) >= 225): #makes sure that at least a week of play has passed roughly
 			#This part grabs and attaches bullpen xFIP data to the main DF
 			bullpen_url = ('https://www.fangraphs.com/leaders.aspx?pos=all&stats=rel&lg=all&qual=0&type=c,6,62&season=%s&month=0&season1=%s&ind=0&team=0,ts&rost=0&age=0&filter=&players=0' % (str(year),str(year)))
@@ -51,7 +54,7 @@ class TeamLeaderboard:
 			table = payroll_soup.find_all('table')[0]
 			pr_df = pd.read_html(str(table),header=0)
 			pr_df = pr_df[0]
-			pr_df = pr_df.loc[:14].append(pr_df.loc[17:]) #removes annoying "league average" stuff
+			pr_df.loc[pr_df['Team'] != 'League Average'] #removes annoying "league average" stuff
 			for index in range(0,len(spotrac_ids)): #replaces spotrac ids with FanGraphs IDs
 				pr_df['Team'].loc[pr_df['Team'] == spotrac_ids[index]] = fangraphs_ids[index]
 			df = df.merge(pr_df, on='Team')
@@ -73,6 +76,19 @@ class TeamLeaderboard:
 			pf_df = pf_df[0]
 			df = df.merge(pf_df, on='Team')
 			#calculates NERD
+			df['Bat'] = pd.to_numeric(df['Bat'], downcast="float")
+			df['HR_x'] = pd.to_numeric(df['HR_x'], downcast="float")
+			df['HR_y'] = pd.to_numeric(df['HR_y'], downcast="float")
+			df['BsR'] = pd.to_numeric(df['BsR'], downcast="float")
+			df['xFIP'] = pd.to_numeric(df['xFIP'], downcast="float")
+			df['Def'] = pd.to_numeric(df['Def'], downcast="float")
+			df['Total Payroll'] = df[str(now.year) + ' Total Payroll'].replace('[\$,]', '', regex=True).astype(float)
+			df['Total Payroll'] = pd.to_numeric(df['Total Payroll'], downcast="float")
+			df['Age'] = pd.to_numeric(df['Age'], downcast="float")
+			df['WAR_x'] = pd.to_numeric(df['WAR_x'], downcast="float")
+			df['WAR_y'] = pd.to_numeric(df['WAR_y'], downcast="float")
+			df['W'] = pd.to_numeric(df['W'], downcast="float")
+
 			df['zBat'] = (df['Bat'] - df['Bat'].mean())/df['Bat'].std(ddof=0) #Finds Z-score values for calculation
 			df['HRpPA'] = df['HR_x'] / df['PA'] #calculates HR per PA per team
 			df['HRpPA'] = df['HRpPA'] * df['HR_y'] / 100 #adjusts for park factors
@@ -93,7 +109,7 @@ class TeamLeaderboard:
 			df['NERD'] = (((df['NERD'] - min(list(df['NERD']))) * (10)) / (max(list(df['NERD'])) - min(list(df['NERD'])))) #feature scaled
 			self.df  = df
 			self.year = year
-		else: #This does the exact same stuff as above, except it does it for the previous year if there aren't enough teams in the previous year. 
+		else: #This does the exact same stuff as above, except it does it for the previous year if there aren't enough teams in the previous year.
 			pd.options.mode.chained_assignment = None #this keeps my console from getting spammed with stupid messages
 			team_url = ('https://www.fangraphs.com/leaders.aspx?pos=all&stats=bat&lg=all&qual=0&type=c,53,11,6,111,199,3,58&season=%s&month=0&season1=%s&ind=0&team=0,ts&rost=&age=&filter=&players=0' % (str(year-1),str(year-1)))
 			team_page = requests.get(team_url)
@@ -139,6 +155,20 @@ class TeamLeaderboard:
 			pf_df = pf_df[0]
 			df = df.merge(pf_df, on='Team')
 			#calculates NERD
+			df['Bat'] = pd.to_numeric(df['Bat'], downcast="float")
+			df['HR_x'] = pd.to_numeric(df['HR_x'], downcast="float")
+			df['PA'] = pd.to_numeric(df['PA'], downcast="float")
+			df['HR_y'] = pd.to_numeric(df['HR_y'], downcast="float")
+			df['BsR'] = pd.to_numeric(df['BsR'], downcast="float")
+			df['xFIP'] = pd.to_numeric(df['xFIP'], downcast="float")
+			df['Def'] = pd.to_numeric(df['Def'], downcast="float")
+			df['Total Payroll'] = df[str(now.year) + ' Total Payroll'].replace('[\$,]', '', regex=True).astype(float)
+			df['Total Payroll'] = pd.to_numeric(df['Total Payroll'], downcast="float")
+			df['Age'] = pd.to_numeric(df['Age'], downcast="float")
+			df['WAR_x'] = pd.to_numeric(df['WAR_x'], downcast="float")
+			df['WAR_y'] = pd.to_numeric(df['WAR_y'], downcast="float")
+			df['W'] = pd.to_numeric(df['W'], downcast="float")
+
 			df['zBat'] = (df['Bat'] - df['Bat'].mean())/df['Bat'].std(ddof=0) #Finds Z-score values for calculation
 			df['HRpPA'] = df['HR_x'] / df['PA'] #calculates HR per PA per team
 			df['HRpPA'] = df['HRpPA'] * df['HR_y'] / 100 #adjusts for park factors

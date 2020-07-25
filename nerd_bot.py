@@ -8,7 +8,14 @@ import subprocess
 import codecs
 from time import *
 import pause
+import ipdb
+import imgkit
 
+path_wkthmltoimage = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe'
+config = imgkit.config(wkhtmltoimage=path_wkthmltoimage)
+options = {
+	"disable-local-file-access":""
+}
 
 while True:
 	#authentication
@@ -19,10 +26,18 @@ while True:
 		print('Authenticated without issue!')
 	except:
 		print('Error with Authentication!')
-
+	#ipdb.set_trace()
 	now = datetime.datetime.now()
-	p_leaderboard = PitcherLeaderboard(now.year) #creates pitcher leaderboard
-	t_leaderboard = TeamLeaderboard(now.year) #creates team leaderboard
+	try:
+		p_leaderboard = PitcherLeaderboard(now.year) #creates pitcher leaderboard
+		t_leaderboard = TeamLeaderboard(now.year) #creates team leaderboard
+	except:
+		try:
+			p_leaderboard = PitcherLeaderboard(int(now.year) - 1) #creates pitcher leaderboard
+			t_leaderboard = TeamLeaderboard(int(now.year) - 1) #creates team leaderboard
+		except:
+			print("Error occured in generating leaderboards!")
+			pass
 
  	#Posts information regarding NERD scores for the day
 	try:
@@ -52,44 +67,59 @@ while True:
 
 	#Posts NERD Scores for the day
 	try:
-	days_games = pd.DataFrame() #puts scoreoard into a dataframe
-	days_games['Home P'] = [game.p_pitcher_away for game in games]
-	days_games['Home Team']  = [game.home_team for game in games]
-	days_games['H_SP'] = [game.away_pitcher_NERD for game in games]
-	days_games['H_TM'] = [game.home_team_NERD for game in games]
-	days_games['GM'] = [game.total_NERD for game in games]
-	days_games['A_TM'] = [game.away_team_NERD for game in games]
-	days_games['A_SP'] = [game.home_pitcher_NERD for game in games]
-	days_games['Away Team'] = [game.away_team for game in games]
-	days_games['Away P'] = [game.p_pitcher_home for game in games]
-	days_games['Game Time'] = [game.game_start_time for game in games]
-	days_games.to_html("todays_table.html",index = False) #writes to an HTML table for conversion to image
-	f=codecs.open("todays_table.html", 'r')
-	new_html = f.read()
-	f.close()
-	f = codecs.open('todays_table.html','w')
-	new_html = '''<html>
-	<head>
-	<link rel="stylesheet" type="text/css" href="table_style.css">
-	<link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
-	</head>''' + new_html + '</html>' #adds styling to HTML table
-	f.write(new_html)
-	f.close()
-	subprocess.call( #converts HTML table to image
-		'wkhtmltoimage -f png --width 650 todays_table.html todays_table.png', shell=True)
-	body = 'Top games for today by NERD\n'
-	body += '%s (%s) vs. %s (%s), %s ET (NERD: %d)\n' % (str(days_games['Home Team'].iloc[0]),str(days_games['Home P'].iloc[0]),str(days_games['Away Team'].iloc[0]),str(days_games['Away P'].iloc[0]),str(days_games['Game Time'].iloc[0]),int(days_games['GM'].iloc[0]))
-	body += '%s (%s) vs. %s (%s), %s ET (NERD: %d)\n' % (str(days_games['Home Team'].iloc[1]),str(days_games['Home P'].iloc[1]),str(days_games['Away Team'].iloc[1]),str(days_games['Away P'].iloc[1]),str(days_games['Game Time'].iloc[1]),int(days_games['GM'].iloc[1]))
-	body += '%s (%s) vs. %s (%s), %s ET (NERD: %d)\n' % (str(days_games['Home Team'].iloc[2]),str(days_games['Home P'].iloc[2]),str(days_games['Away Team'].iloc[2]),str(days_games['Away P'].iloc[2]),str(days_games['Game Time'].iloc[2]),int(days_games['GM'].iloc[2]))
+		days_games = pd.DataFrame() #puts scoreoard into a dataframe
+		days_games['Home P'] = [game.p_pitcher_away for game in games]
+		days_games['Home Team']  = [game.home_team for game in games]
+		days_games['H_SP'] = [game.away_pitcher_NERD for game in games]
+		days_games['H_TM'] = [game.home_team_NERD for game in games]
+		days_games['GM'] = [game.total_NERD for game in games]
+		days_games['A_TM'] = [game.away_team_NERD for game in games]
+		days_games['A_SP'] = [game.home_pitcher_NERD for game in games]
+		days_games['Away Team'] = [game.away_team for game in games]
+		days_games['Away P'] = [game.p_pitcher_home for game in games]
+		days_games['Game Time'] = [game.game_start_time for game in games]
+		days_games.to_html("todays_table.html",index = False) #writes to an HTML table for conversion to image
+		f=codecs.open("todays_table.html", 'r')
+		new_html = f.read()
+		f.close()
+		f = codecs.open('todays_table.html','w')
+		new_html = '''<html>
+		<head>
+		<style>
+		table{
+			max-width: 1000px;
+			background-color: #fff;
+			margin: 0 auto;
+			font-family: Lato,Arial;
+			font-size: 12px;
+			line-height: 1.5;
+			color: #000;
+			background-color: #f0f0f0;
+			margin: 0;
+			padding: 0;
+		}
+		</style>
+		<link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
+		</head>''' + new_html + '</html>' #adds styling to HTML table
+		f.write(new_html)
+		f.close()
+		imgkit.from_url('todays_table.html', 'todays_table.png',config=config, options=  options)
+		body = 'Top games for today by NERD\n'
+		body += '%s (%s) vs. %s (%s), %s ET (NERD: %d)\n' % (str(days_games['Home Team'].iloc[0]),str(days_games['Home P'].iloc[0]),str(days_games['Away Team'].iloc[0]),str(days_games['Away P'].iloc[0]),str(days_games['Game Time'].iloc[0]),int(days_games['GM'].iloc[0]))
+		body += '%s (%s) vs. %s (%s), %s ET (NERD: %d)\n' % (str(days_games['Home Team'].iloc[1]),str(days_games['Home P'].iloc[1]),str(days_games['Away Team'].iloc[1]),str(days_games['Away P'].iloc[1]),str(days_games['Game Time'].iloc[1]),int(days_games['GM'].iloc[1]))
+		body += '%s (%s) vs. %s (%s), %s ET (NERD: %d)\n' % (str(days_games['Home Team'].iloc[2]),str(days_games['Home P'].iloc[2]),str(days_games['Away Team'].iloc[2]),str(days_games['Away P'].iloc[2]),str(days_games['Game Time'].iloc[2]),int(days_games['GM'].iloc[2]))
+	except:
+		print("Unable to generate game table image!")
+		pass
 
 	try:
-		api.update_with_media('todays_table.png',body) #posts tweet
+		# api.update_with_media('todays_table.png',body) #posts tweet
 		top_game_already_posted = True
 		print('Posted today\'s game table.')
-		sleep(900) #wait 15 minutes for next tweet
+		# sleep(900) #wait 15 minutes for next tweet
 	except:
 		print('Unable to post today\'s game table.')
-		sleep(900)
+		# sleep(900)
 
 	#Shows top NERD scores for pitchers
 
@@ -106,13 +136,25 @@ while True:
 	f = codecs.open('pitcher_leaders.html','w')
 	new_html = '''<html>
 	<head>
-	<link rel="stylesheet" type="text/css" href="table_style.css">
+		<style>
+		table{
+			max-width: 1000px;
+			background-color: #fff;
+			margin: 0 auto;
+			font-family: Lato,Arial;
+			font-size: 12px;
+			line-height: 1.5;
+			color: #000;
+			background-color: #f0f0f0;
+			margin: 0;
+			padding: 0;
+		}
+		</style>
 	<link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
 	</head>''' + new_html + '</html>'
 	f.write(new_html)
 	f.close()
-	subprocess.call(
-		'wkhtmltoimage -f png --width 175 pitcher_leaders.html pitchers_table.png', shell=True)
+	imgkit.from_url('pitcher_leaders.html','pitchers_table.png',config=config)
 	body = 'Top pitchers by NERD - %d/%d/%d \n' % (now.month,now.day,now.year)
 	body += '%s - %d\n' % (pitcher_df.iloc[0]['Name'],pitcher_df.iloc[0]['NERD'])
 	body += '%s - %d\n' % (pitcher_df.iloc[1]['Name'],pitcher_df.iloc[1]['NERD'])
@@ -121,12 +163,12 @@ while True:
 	body += '%s - %d\n' % (pitcher_df.iloc[4]['Name'],pitcher_df.iloc[4]['NERD'])
 
 	try:
-		api.update_with_media('pitchers_table.png',body)
+		# api.update_with_media('pitchers_table.png',body)
 		print('Posted today\'s pitchers table.')
-		sleep(900)
+		# sleep(900)
 	except:
 		print('Unable to post today\'s pitchers table.')
-		sleep(900)
+		# sleep(900)
 
 	#this last chunk puts NERD values for teams together
 	team_df = t_leaderboard.df.sort_values(by=['NERD'],ascending=False)
@@ -141,13 +183,25 @@ while True:
 	f = codecs.open('team_leaders.html','w')
 	new_html = '''<html>
 	<head>
-	<link rel="stylesheet" type="text/css" href="table_style.css">
+			<style>
+			table{
+				max-width: 1000px;
+				background-color: #fff;
+				margin: 0 auto;
+				font-family: Lato,Arial;
+				font-size: 12px;
+				line-height: 1.5;
+				color: #000;
+				background-color: #f0f0f0;
+				margin: 0;
+				padding: 0;
+			}
+			</style>
 	<link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
 	</head>''' + new_html + '</html>'
 	f.write(new_html)
 	f.close()
-	subprocess.call(
-		'wkhtmltoimage -f png --width 175 team_leaders.html team_table.png', shell=True)
+	imgkit.from_url('team_leaders.html', 'team_table.png',config=config)
 	body = 'Top teams by NERD - %d/%d/%d \n' % (now.month,now.day,now.year)
 	body += '%s - %d\n' % (team_df.iloc[0]['Team'],team_df.iloc[0]['NERD'])
 	body += '%s - %d\n' % (team_df.iloc[1]['Team'],team_df.iloc[1]['NERD'])
@@ -156,7 +210,7 @@ while True:
 	body += '%s - %d\n' % (team_df.iloc[4]['Team'],team_df.iloc[4]['NERD'])
 
 	try:
-		api.update_with_media('team_table.png',body)
+		# api.update_with_media('team_table.png',body)
 		print('Posted today\'s team table.')
 	except:
 		print('Unable to post today\'s team table.')
@@ -174,8 +228,8 @@ while True:
 	for index,row in days_games.iterrows(): #This posts NERD scores when games are about to begin
 		print('Waiting for %s vs. %s to start' % (str(days_games['Home Team'].iloc[index]) , str(days_games['Away Team'].iloc[index])))
 		pause.until(game_times[index])
-		body = '%s (%s) vs. %s (%s) about to start - NERD Game Score of %d' % (str(days_games['Home Team'].iloc[index]),str(days_games['Home P'].iloc[index]),str(days_games['Away Team'].iloc[index]),str(days_games['Away P'].iloc[index]),int(day_games['']))
-		api.update_status(body)
+		body = '%s (%s) vs. %s (%s) about to start - NERD Game Score of %d' % (str(days_games['Home Team'].iloc[index]),str(days_games['Home P'].iloc[index]),str(days_games['Away Team'].iloc[index]),str(days_games['Away P'].iloc[index]),days_games['GM'].iloc[index])
+		#api.update_status(body)
 
 	#pauses running until new day
 	new_day = now + datetime.timedelta(days=1)
