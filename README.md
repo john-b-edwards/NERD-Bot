@@ -1,4 +1,4 @@
-# NERD-Bot
+# NERD-Bot - Archived as I am unable to maintain it
 
 ## What is this?
 If you're like me, you miss Carson Cistulli's daily NERD Scores on FanGraphs. While I can hardly hope to match Cistulli's writing ability, I can code passably, so I figured I'd implement a version of Cistulli's NERD Scores easily consumable by the Twitterverse.
